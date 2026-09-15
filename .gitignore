@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Your poker night: accounts, ledgers, tokens and the TLS key all live here.
+# None of it belongs in a repository.
+data/*.json
+data/*.corrupt-*
+data/cert/
+
+# Anything anyone uploaded: avatars, table photos, sounds, the logo.
+# The pattern covers upload kinds added later without needing a new line.
+uploads/*/*
+!**/.gitkeep
+
+# Local config
+.env
+.env.*
+Caddyfile
+
+# Noise
+*.log
+.DS_Store
+Thumbs.db

@@ -1,0 +1,9 @@
+# Normalise line endings so a checkout on Windows and one on a Mac agree.
+* text=auto eol=lf
+
+# Batch files want CRLF; some Windows shells mishandle LF in labels and goto.
+*.bat text eol=crlf
+
+# Shell scripts must stay LF even when checked out on Windows.
+*.sh text eol=lf
+*.command text eol=lf

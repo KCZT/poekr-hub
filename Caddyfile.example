@@ -1,0 +1,42 @@
+# Caddyfile — put this at /etc/caddy/Caddyfile and change the domain.
+#
+# Caddy gets a real certificate from Let's Encrypt on its own, renews it on its
+# own, and redirects http to https by default. Nothing to configure for any of
+# that; the lines below are the ones this app actually needs.
+
+poker.example.com {
+	encode zstd gzip
+
+	reverse_proxy 127.0.0.1:3000 {
+		# Live updates are a long-lived stream. Caddy usually works this out from
+		# the content type, but saying so outright means it cannot buffer the
+		# feed and leave everyone's table looking frozen.
+		flush_interval -1
+
+		# The app reads these to know who is asking and over what. Caddy sets them
+		# already; they are spelled out here so nobody deletes them by accident.
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-For {remote_host}
+		header_up Host {host}
+	}
+
+	# Photos and sounds go up as base64 inside a JSON body, so the request is
+	# larger than the file. Caddy's default is generous, but a phone photo on a
+	# slow upload is the one thing likely to hit a limit.
+	request_body {
+		max_size 12MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+		# The app is the only thing on this domain and frames nothing.
+		X-Frame-Options "DENY"
+	}
+
+	log {
+		output file /var/log/caddy/poker.log
+		format json
+	}
+}

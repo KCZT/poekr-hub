@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d211c">
+<meta name="color-scheme" content="dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&amp;display=swap">
+<link rel="stylesheet" href="/css/app.css">
+<link rel="icon" href="/brand/icon">
+<title>Poker results</title>
+<style>
+  body { display: grid; place-items: start center; }
+  .share-wrap { width: min(560px, 100%); padding: 22px 16px 60px; }
+  .share-head { text-align: center; margin-bottom: 22px; }
+  .share-head h1 { font-family: var(--display); font-size: 2rem; font-weight: 900; margin: 0 0 4px; letter-spacing: -.02em; }
+  .share-foot { text-align: center; margin-top: 26px; font-size: .78rem; }
+</style>
+</head>
+<body>
+  <div class="share-wrap" id="wrap">
+    <div class="empty">Loading…</div>
+  </div>
+<script type="module">
+import { h, avatar, suitChar, share } from '/js/ui.js';
+
+const wrap = document.getElementById('wrap');
+const [, , kind, token] = location.pathname.split('/');
+const money = (n, cur = '$') => {
+  const v = Number(n || 0);
+  const s = Math.abs(v) % 1 === 0 ? Math.abs(v).toFixed(0) : Math.abs(v).toFixed(2);
+  return `${v < 0 ? '−' : ''}${cur}${s}`;
+};
+const signed = (n, cur) => (Number(n) > 0 ? `+${money(n, cur)}` : money(n, cur));
+
+const endpoint = { room: 'room', leaderboard: 'leaderboard', player: 'player' }[kind];
+if (!endpoint) {
+  wrap.replaceChildren(h('div', { class: 'empty' }, 'That link does not look right.'));
+} else {
+  fetch(`/api/share/${endpoint}/${token}`)
+    .then(async (r) => {
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'This link is no longer live.');
+      return d;
+    })
+    .then(render)
+    .catch((e) => wrap.replaceChildren(h('div', { class: 'empty' }, e.message)));
+}
+
+function render(d) {
+  document.title = d.name || d.player?.displayName || 'Poker results';
+  wrap.replaceChildren(
+    h('div', { class: 'share-head' },
+      h('h1', {}, d.kind === 'player' ? d.player.displayName : d.name),
+      h('div', { class: 'muted', style: { fontSize: '.86rem' } }, subtitle(d))),
+    d.kind === 'player' ? playerCard(d) : table(d),
+    h('div', { class: 'share-foot' },
+      h('button', {
+        class: 'btn btn-sm',
+        onClick: () => share(document.title, location.href, 'Poker results')
+      }, 'Share this'),
+      h('div', { class: 'muted', style: { marginTop: '10px' } }, 'Read only. Nobody can change anything from here.')));
+}
+
+function subtitle(d) {
+  if (d.kind === 'player') {
+    return `${d.stats.sessions} night${d.stats.sessions === 1 ? '' : 's'} at the table`;
+  }
+  const games = (d.games || []).join(' · ');
+  if (d.kind === 'room') return `${d.status === 'ended' ? 'Final' : 'Live'}${games ? ` · ${games}` : ''}`;
+  return 'All time standings';
+}
+
+function table(d) {
+  if (!d.rows.length) return h('div', { class: 'empty' }, 'No results yet.');
+  const net = (r) => r.result ?? r.net ?? 0;
+  return h('div', { class: 'panel' },
+    h('table', { class: 'table-list' },
+      h('thead', {}, h('tr', {},
+        h('th', {}, ''), h('th', {}, 'Player'),
+        h('th', { class: 'n', style: { textAlign: 'right' } }, 'In'),
+        h('th', { class: 'n', style: { textAlign: 'right' } }, 'Out'),
+        h('th', { class: 'n', style: { textAlign: 'right' } }, 'Net'))),
+      h('tbody', {}, d.rows.map((r, i) => h('tr', {},
+        h('td', { class: `rank ${i === 0 ? 'rank-1' : ''}` }, String(i + 1)),
+        h('td', {}, h('div', { class: 'row gap-sm' }, avatar(r, 'avatar-sm'),
+          h('span', {}, r.displayName || 'Player', ' ', h('span', { class: 'muted' }, suitChar(r.suit))))),
+        h('td', { class: 'n muted' }, money(r.buyIn, d.currency)),
+        h('td', { class: 'n muted' }, money(r.cashOut ?? (r.buyIn + (r.net ?? 0)), d.currency)),
+        h('td', { class: `n ${net(r) > 0 ? 'up' : net(r) < 0 ? 'down' : ''}` }, signed(net(r), d.currency)))))));
+}
+
+function playerCard(d) {
+  const s = d.stats;
+  const isRed = d.player.suit === 'heart' || d.player.suit === 'diamond';
+  const cell = (k, v) => h('div', {}, h('div', { class: 'k' }, k), h('div', { class: 'v num' }, String(v)));
+  return h('div', { class: 'pcard', 'data-index': `${s.net > 0 ? 'A' : 'K'}\n${suitChar(d.player.suit)}`,
+    style: { '--pc-accent': isRed ? '#b3413c' : '#1a1b17' } },
+  h('div', { class: 'pcard-head' }, avatar(d.player, 'avatar-lg'),
+    h('div', { class: 'grow' },
+      h('h3', {}, d.player.displayName),
+      d.player.bio ? h('p', { class: 'bio' }, d.player.bio) : null)),
+  h('div', { class: 'pcard-net' },
+    h('div', { class: 'k' }, 'Lifetime'),
+    h('div', { class: 'v num', style: { color: s.net > 0 ? '#3f7a4d' : s.net < 0 ? '#a9342e' : '#45443b' } },
+      signed(s.net, d.currency))),
+  h('div', { class: 'pcard-grid' },
+    cell('Record', `${s.wins}–${s.losses}`),
+    cell('Nights', s.sessions),
+    cell('Win rate', `${s.winRate}%`),
+    cell('Per night', signed(s.perSession, d.currency)),
+    cell('Best night', signed(s.biggestWin, d.currency)),
+    cell('Worst night', signed(s.biggestLoss, d.currency))),
+  s.achievements?.length
+    ? h('div', { class: 'badges' }, s.achievements.map((b) => h('span', { class: 'badge-pill', title: b.hint }, b.name)))
+    : null);
+}
+</script>
+</body>
+</html>

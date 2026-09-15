@@ -1,0 +1,27 @@
+{
+  "name": "poker-hub",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Multi-room poker night tracker with ledger settlement, roles and sharing",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node scripts/seed.js",
+    "test": "node scripts/test-ledger.js && node scripts/test-api.js",
+    "test:ledger": "node scripts/test-ledger.js",
+    "test:api": "node scripts/test-api.js",
+    "test:ui": "node scripts/test-ui.js",
+    "test:secure": "node scripts/test-secure.js",
+    "set-password": "node scripts/set-password.js",
+    "test:hosted": "node scripts/test-hosted.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "qrcode": "^1.5.3",
+    "selfsigned": "^2.4.1"
+  }
+}
