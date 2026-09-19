@@ -142,7 +142,9 @@ export async function meView(root, { go, reload }) {
           ? 'You opened this over a plain link, and browsers switch alerts off there. Open the secure link below instead and they will work. It is the same app on the same computer.'
           : alertState === 'denied'
             ? 'Your browser is blocking alerts for this site. Turn them back on in its site settings if you want them.'
-            : 'Get a buzz when a shot is called on you, someone calls out, or a buy-in needs approving. No internet needed — it comes straight off the table.'),
+            : alertState === 'unsupported'
+              ? 'This browser only allows alerts once the app is on your home screen. On an iPhone: tap the share button, then "Add to Home Screen", and open it from there. Everything else works fine as you are.'
+              : 'Get a buzz when a shot is called on you, someone calls out, or a buy-in needs approving. No internet needed — it comes straight off the table.'),
     alertState === 'insecure' && state.boot?.secureUrl
       ? h('div', {},
         h('a', { class: 'btn btn-primary btn-block', href: state.boot.secureUrl }, 'Open the secure link'),
@@ -186,12 +188,16 @@ export async function meView(root, { go, reload }) {
     h('p', { class: 'sheet-sub' },
       me.hasPassword
         ? 'You sign in with a username and password.'
-        : state.boot?.allowPasswordlessAccounts
-          ? 'You have no password, so you sign in by tapping your name on the sign-in screen. That is fine for a game at someone’s house — add one if you want the account locked down.'
-          : 'You have no password, and this install is on a public address where one is needed. Set one now or you will not be able to sign in again.'),
+        : !state.boot?.allowPasswordlessAccounts
+          ? 'You have no password, and this install needs one. Set one now or you will not be able to sign in again.'
+          : state.boot?.hosted
+            ? 'You have no password, so you sign in by tapping your name. This install is on a public address, so anyone who finds it can tap your name too. Add a password if that bothers you.'
+            : 'You have no password, so you sign in by tapping your name on the sign-in screen. That is fine for a game at someone’s house — add one if you want the account locked down.'),
     !me.hasPassword && me.role === 'site_admin'
       ? h('p', { class: 'sheet-sub', style: { color: 'var(--brass)' } },
-        'You are the poker admin. Without a password, anyone who can reach this app can sign in as you and manage every account.')
+        state.boot?.hosted
+          ? 'You are the poker admin, on a public address, with no password. Anyone who finds this site can sign in as you, manage every account and download a backup of everything. Worth a password.'
+          : 'You are the poker admin. Without a password, anyone who can reach this app can sign in as you and manage every account.')
       : null,
     h('div', { class: 'stack gap-sm' },
       h('button', {

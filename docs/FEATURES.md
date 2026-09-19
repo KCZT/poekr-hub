@@ -166,7 +166,9 @@ Renameable per table, or switch it off entirely.
 **Live updates.** Every phone updates on its own. No pull-to-refresh.
 
 **Alerts.** Your phone buzzes when a shot is called on you, someone calls out, or
-a buy-in needs your approval. No internet and no third party involved — it rides
+a buy-in needs your approval. On an iPhone they only arrive once the app is on
+the home screen, which is an Apple rule rather than a choice here — the You tab
+says so rather than showing a switch that would do nothing. No internet and no third party involved — it rides
 the connection the app already holds open. Needs the secure link and the app
 still open, though backgrounded is fine.
 
@@ -227,10 +229,15 @@ with a note inside explaining how to put it back.
 ## Running it on a server
 
 **Hosted mode.** Set one variable, `PUBLIC_URL`, and the app changes posture as a
-unit: reading a table needs a sign-in and membership, accounts without a password
-stop being a way in, it binds to loopback so nothing reaches it except the proxy,
+unit: reading a table needs a sign-in and membership, it binds to loopback so
+nothing reaches it except the proxy, it believes the proxy about who is asking,
 and it stops managing its own certificate. Unset it and the laptop behaviour
-comes back, passwords already set staying set.
+comes back.
+
+Passwords stay optional there too, so a table can move to a server without
+locking anyone out. The startup banner spells out what that means on a public
+address, and says so louder if a poker admin is one of the open accounts.
+`REQUIRE_PASSWORDS=1` insists on one.
 
 **Caddy config included.** `Caddyfile.example` has the two settings that matter —
 unbuffered live updates, and forwarding the real client address so rate limiting
@@ -241,6 +248,22 @@ machine, for the case where an install with no passwords moves somewhere that
 needs them.
 
 See **docs/HOSTING.md** for the whole walkthrough.
+
+## Browsers and phones
+
+**Works on** Safari on iPhone and Mac, Firefox anywhere, and anything Chromium,
+from Safari 15.4 and Firefox 91 upward.
+
+**Degrades rather than breaks.** Vibration, wake lock, app badges, Web Share and
+notifications are all absent on some engine or other. Where one is missing the
+app carries on without it and, where it matters, says why — an iPhone is told
+that alerts need the app on the home screen instead of being shown a switch that
+would do nothing.
+
+**Built for a phone at a table.** Nothing scrolls sideways from 360px up, every
+control a finger is meant to hit is at least 44px on a touchscreen, and the
+layout clears the Dynamic Island and the home indicator on every iPhone from the
+14 Pro onwards. Tested at eight sizes from an SE to a 16 Pro Max.
 
 ## Under the hood
 
@@ -253,6 +276,9 @@ tap through and it never asks again. The plain HTTP link still works for
 everything else.
 
 **Installs to a home screen** and works offline once loaded.
+
+**Tests are safe to run anywhere**, including on the server holding your history:
+each suite writes to a throwaway directory rather than the live one.
 
 **Storage** is JSON files plus an uploads folder. Copy two folders to back up.
 Writes are atomic and a corrupted file is quarantined rather than crashing.

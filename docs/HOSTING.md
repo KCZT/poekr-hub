@@ -9,8 +9,8 @@ reach the app are the people in your house. On a public address that is no longe
 true, so setting `PUBLIC_URL` changes the app's posture in three ways at once:
 
 - Reading a table needs a sign-in, and only people at that table can read it.
-- An account without a password stops being a way in.
 - The app stops managing its own certificate, because Caddy is doing it properly.
+- The addresses it hands out, and the QR code, point at your domain.
 
 You do not switch those on individually and you cannot half-do it. One variable
 moves all three together.
@@ -23,10 +23,26 @@ You need a domain name pointed at the server's IP, and a server. The smallest
 box any provider sells is plenty — this is a few JSON files and a handful of
 people.
 
-If your poker night currently runs with no passwords, **that has to change**.
-Everyone needs one before they can sign in. Set them with
-`npm run set-password <username>`, which is also how you get back in if you lock
-yourself out.
+**Passwords stay optional**, the same as on your wifi. Accounts without one sign
+in by having their name tapped, and that keeps working on a public address.
+
+Be clear about what that means, because it is the one thing about hosting that
+can genuinely catch you out: anyone who finds the address can sign in as any
+account that has no password. If one of those is a poker admin, they can manage
+every account and download a backup of everything. Reading a table needs a
+sign-in, but signing in is the part that is free.
+
+Three ways to sit with that, all reasonable:
+
+- **Leave it open.** Nobody is looking for your poker site. Give the admin
+  account a password and leave the players open, which is the middle most people
+  want.
+- **Give everyone a password.** `npm run set-password <username>` on the server,
+  or from the Admin tab once you are in.
+- **Insist on it.** Add `Environment=REQUIRE_PASSWORDS=1` to the service file
+  below and accounts without one cannot sign in at all.
+
+`npm run set-password` is also how you get back in if you lock yourself out.
 
 ---
 
@@ -61,6 +77,8 @@ WorkingDirectory=/opt/poker/app
 Environment=NODE_ENV=production
 Environment=PORT=3000
 Environment=PUBLIC_URL=https://poker.example.com
+# Uncomment to insist every account has a password:
+# Environment=REQUIRE_PASSWORDS=1
 ExecStart=/usr/bin/node server.js
 Restart=always
 RestartSec=5
@@ -137,10 +155,20 @@ add workers, do not run a second instance.
 
 ## Going back to a laptop
 
-Unset `PUBLIC_URL` and it is the LAN app again: open reads, optional passwords,
-its own self-signed certificate. Passwords already set stay set.
+Unset `PUBLIC_URL` and it is the LAN app again: open reads and its own
+self-signed certificate. Passwords already set stay set.
 
 ---
+
+## On iPhones
+
+Everything works in Safari as it is. Two things are worth telling people:
+
+- **Alerts need the app on the home screen.** iOS only allows notifications to
+  an installed web app, so tap the share button, then "Add to Home Screen", and
+  open it from there. The app says as much on the You tab.
+- Installed to the home screen it also runs full-screen and keeps working if the
+  wifi drops.
 
 ## What is still true on a public address
 

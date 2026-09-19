@@ -13,7 +13,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const DIR = path.join(__dirname, '..', 'data', 'cert');
+const DIR = path.join(process.env.POKERHUB_DATA || path.join(__dirname, '..', 'data'), 'cert');
 const KEY = path.join(DIR, 'key.pem');
 const CERT = path.join(DIR, 'cert.pem');
 const META = path.join(DIR, 'hosts.json');

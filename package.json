@@ -8,12 +8,16 @@
   "scripts": {
     "start": "node server.js",
     "seed": "node scripts/seed.js",
-    "test": "node scripts/test-ledger.js && node scripts/test-api.js",
+    "set-password": "node scripts/set-password.js",
+    "test": "node scripts/test-ledger.js && node scripts/test-api.js && node scripts/test-compat.js",
     "test:ledger": "node scripts/test-ledger.js",
     "test:api": "node scripts/test-api.js",
+    "test:compat": "node scripts/test-compat.js",
     "test:ui": "node scripts/test-ui.js",
+    "test:layout": "node scripts/test-layout.js",
+    "test:degraded": "node scripts/test-degraded.js",
+    "test:webkit": "node scripts/test-webkit.js",
     "test:secure": "node scripts/test-secure.js",
-    "set-password": "node scripts/set-password.js",
     "test:hosted": "node scripts/test-hosted.js"
   },
   "engines": {

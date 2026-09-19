@@ -1,4 +1,6 @@
 'use strict';
+// Storage goes to a throwaway directory; must be first.
+require('./lib/sandbox');
 /**
  * The point of the HTTPS server is that a phone on the wifi gets a secure
  * context. Without one, service workers do not exist, home-screen install is
@@ -73,7 +75,7 @@ async function caps(page, origin) {
     headless: 'new',
     ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
     acceptInsecureCerts: true, // what a person does when they tap through the warning
-    args: ['--no-sandbox', '--disable-dev-shm-usage']
+    args: ['--no-sandbox', '--disable-dev-shm-usage', '--no-proxy-server']
   });
 
   console.log('\nWhat a phone gets over the plain link');
@@ -103,8 +105,8 @@ async function caps(page, origin) {
   ok('and hands out the secure address', String(boot.secureUrl || '').startsWith('https://'), boot.secureUrl);
 
   console.log('\nBackups leave the key behind');
-  const files = fs.readdirSync(path.join(__dirname, '..', 'data'));
-  ok('the certificate is stored under data', files.includes('cert'));
+  const files = fs.readdirSync(process.env.POKERHUB_DATA || path.join(__dirname, '..', 'data'));
+  ok('the certificate is stored under the data directory', files.includes('cert'));
 
   await browser.close();
   plain.close();

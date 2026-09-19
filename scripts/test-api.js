@@ -1,4 +1,6 @@
 'use strict';
+// Storage goes to a throwaway directory; must be first.
+require('./lib/sandbox');
 /* Drives the real HTTP API through a full poker night. */
 const { app } = require('../server');
 const { db } = require('../src/store');

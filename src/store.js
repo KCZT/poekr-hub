@@ -7,7 +7,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+/*
+ * Overridable so the test suites can point at a throwaway directory. Without
+ * it they write accounts and rooms into whatever install they are run from,
+ * and one of them deletes the folder afterwards — which on a server would take
+ * a season of poker history with it.
+ */
+const DATA_DIR = process.env.POKERHUB_DATA || path.join(__dirname, '..', 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 const SHAPES = {
@@ -61,6 +67,10 @@ function clone(v) { return JSON.parse(JSON.stringify(v)); }
 function flushOne(name) {
   const f = file(name);
   const tmp = `${f}.tmp`;
+  // The folder can go missing underneath us — someone tidying up, a synced
+  // drive, a test harness clearing its sandbox — and losing a night's ledger
+  // to that would be unforgivable. Put it back and carry on.
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.writeFileSync(tmp, JSON.stringify(cache[name], null, 2));
   fs.renameSync(tmp, f);
 }

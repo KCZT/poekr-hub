@@ -303,17 +303,58 @@ If you update the app, do not overwrite `data/` — that is your history.
 ## Checking it still works
 
 ```
-npm test             # money model and the whole HTTP API
-npm run test:ui      # drives the real interface in a headless browser
-npm run test:secure  # checks a phone on the wifi gets a working secure context
+npm test               # money model, the whole HTTP API, and compatibility
 ```
 
-The money tests are the ones worth keeping. They run a cash night, a credit
-night, a fronted buy-in, a deliberately messy night, short-buy policy, struck-out
-entries, debt carried from a previous night, and five different ways of spending
-money out of the pot — and check that everybody ends at exactly zero every time.
+That runs with nothing installed beyond the app's own two dependencies. The rest
+drive real browsers, so they want `npm install --no-save puppeteer` first:
 
----
+```
+npm run test:ui        # the real interface, clicked through a full night
+npm run test:layout    # geometry on eight phones, from an SE to a 16 Pro Max
+npm run test:degraded  # the app on engines missing APIs: iOS Safari, Firefox
+npm run test:webkit    # a real WebKit build — the engine behind Safari
+npm run test:secure    # that a phone on the wifi gets a working secure context
+npm run test:hosted    # that a public address closes what it claims to close
+```
+
+`test:webkit` additionally wants a WebKit to drive:
+
+```
+sudo apt-get install -y webkit2gtk-driver xvfb
+```
+
+Every suite skips politely rather than failing when its tooling is absent.
+
+**The tests never touch your data.** Each one writes to a throwaway directory and
+deletes it afterwards, so running them on the machine holding your poker history
+is safe — including on a live server. They are repeatable too: run them twice in
+a row and the second run behaves exactly like the first.
+
+### What each one is actually for
+
+The money tests are the ones worth keeping. They run a cash night, a credit
+night, a fronted buy-in, a deliberately messy night, short-buy policy,
+struck-out entries, debt carried from a previous night, and five ways of
+spending money out of the pot — and check that everybody ends at exactly zero
+every time.
+
+The browser suites exist because of a specific failure. A single
+`Notification?.permission` at the top of a module threw on every iPhone and
+turned the app into a blank page, and nothing caught it: Chromium has
+`Notification`, so the interface tests sailed through. So there are now three
+different angles on the same question, because no one of them is enough:
+
+- **`test:degraded`** takes APIs away and plays a night without them. This is
+  the one that catches the blank page.
+- **`test:webkit`** runs the genuine Safari engine. It catches what an engine
+  disagrees about — parsing, layout, CSS — but *not* the iOS bug, because the
+  WebKit you can install on Linux still has `Notification` and iOS Safari does
+  not.
+- **`test:compat`** reads the source against what each target browser supports.
+  This is how Firefox is covered at all, since its builds are not obtainable
+  everywhere, and it is the only one that can see a hazard on a line that never
+  runs during a test.
 
 ## If something goes wrong
 
@@ -332,6 +373,14 @@ anything.
 **"Too many tries."** Somebody has been guessing at that account. Wait out the
 time it names, or a poker admin can reset the password from the Admin tab, which
 lets them straight back in.
+
+**Nothing loads on an iPhone, just a blank page.** That was a bug, fixed — make
+sure you are running a copy from September 2026 or later. If a blank page comes
+back, open the same address on another phone or a laptop to narrow it down, and
+check whether you are on the plain `http://` link with a certificate the phone
+has not been told to trust: iOS is stricter about self-signed certificates than
+Android is, and will refuse rather than warn. On a hosted install behind Caddy
+the certificate is real and this does not arise.
 
 **Alerts do not arrive.** Check you opened the `https://` link and not the plain
 one — the You tab will say so and give you the right link. They also need the app

@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const ROOT = path.join(__dirname, '..', 'uploads');
+const ROOT = process.env.POKERHUB_UPLOADS || path.join(__dirname, '..', 'uploads');
 const KINDS = {
   avatars: { max: 1.5e6, types: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] },
   brand: { max: 1e6, types: ['image/png', 'image/svg+xml', 'image/jpeg', 'image/webp'] },

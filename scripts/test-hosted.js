@@ -1,4 +1,6 @@
 'use strict';
+// Storage goes to a throwaway directory; must be first.
+require('./lib/sandbox');
 /**
  * Hosted mode is a claim about what is closed. This checks the claim rather
  * than trusting it, by booting the app twice — once as a laptop on a table,
@@ -6,7 +8,6 @@
  */
 const { fork } = require('child_process');
 const path = require('path');
-const fs = require('fs');
 
 let fails = 0;
 const ok = (label, cond, extra = '') => {
@@ -15,14 +16,10 @@ const ok = (label, cond, extra = '') => {
 };
 
 const ROOT = path.join(__dirname, '..');
-const DATA = path.join(ROOT, 'data');
+const sandbox = require('./lib/sandbox');
 
-function wipe() {
-  if (!fs.existsSync(DATA)) return;
-  for (const f of fs.readdirSync(DATA)) {
-    if (f.endsWith('.json')) fs.unlinkSync(path.join(DATA, f));
-  }
-}
+// Never the real data folder: this deletes what it finds.
+const wipe = sandbox.reset;
 
 /** Boots the real server in its own process so config is read fresh. */
 function boot(env) {
@@ -97,21 +94,23 @@ async function call(base, method, p, { token, body } = {}) {
   s = await boot({ PUBLIC_URL: PUBLIC });
   const bootInfo = await call(s.base, 'GET', '/api/bootstrap');
   ok('the app knows it is hosted', bootInfo.hosted === true);
-  ok('and stops offering passwordless accounts', bootInfo.allowPasswordlessAccounts === false);
+  ok('passwordless accounts still work', bootInfo.allowPasswordlessAccounts === true);
   ok('it hands out the public address, not a LAN one', bootInfo.networkUrl === PUBLIC, bootInfo.networkUrl);
   ok('and the secure address too', bootInfo.secureUrl === PUBLIC, bootInfo.secureUrl);
 
-  console.log('\n  What the passwordless account can no longer do');
+  console.log('\n  A password is not demanded just because it is public');
   const tapped = await call(s.base, 'POST', '/api/auth/pick', { body: { playerId: host.player.id } });
-  ok('tapping a name is refused', tapped.httpStatus === 403, tapped.error);
+  ok('tapping a name still signs you in', !!tapped.token, tapped.error);
   const blank = await call(s.base, 'POST', '/api/auth/login', { body: { username: 'riley' } });
-  ok('and so is signing in without one', blank.httpStatus === 403, blank.error);
-  ok('the faces list is empty', (await call(s.base, 'GET', '/api/auth/faces')).players.length === 0);
+  ok('so does the form with the password left blank', !!blank.token, blank.error);
+  ok('the faces list still lists them', (await call(s.base, 'GET', '/api/auth/faces')).players.length > 0);
   const noPwSignup = await call(s.base, 'POST', '/api/auth/signup', {
     body: { username: 'chancer', displayName: 'Chancer' }
   });
-  ok('new accounts cannot skip one either', noPwSignup.httpStatus === 400, noPwSignup.error);
-  ok('the startup notice names who is locked out', /riley/.test(s.log()), '');
+  ok('and new accounts can skip one too', !!noPwSignup.token, noPwSignup.error);
+  ok('the startup notice is honest about what that means',
+    /anyone who finds this/i.test(s.log()), '');
+  ok('and names a passwordless admin specifically', /poker admin/i.test(s.log()), '');
 
   console.log('\n  What is closed to strangers');
   for (const [label, p] of [
@@ -183,6 +182,27 @@ async function call(base, method, p, { token, body } = {}) {
       reachable ? `still reachable on ${lan.address}` : 'loopback only');
   }
 
+  s.child.kill();
+  await new Promise((r) => setTimeout(r, 400));
+
+  // ── For anyone who does want the door shut ───────────────────────────────
+  console.log('\nHosted, with REQUIRE_PASSWORDS=1');
+  s = await boot({ PUBLIC_URL: PUBLIC, REQUIRE_PASSWORDS: '1' });
+  ok('the app says passwordless accounts are off',
+    (await call(s.base, 'GET', '/api/bootstrap')).allowPasswordlessAccounts === false);
+  const shutTap = await call(s.base, 'POST', '/api/auth/pick', { body: { playerId: host.player.id } });
+  ok('tapping a name is refused', shutTap.httpStatus === 403, shutTap.error);
+  const shutBlank = await call(s.base, 'POST', '/api/auth/login', { body: { username: 'riley' } });
+  ok('and a blank password with it', shutBlank.httpStatus === 403, shutBlank.error);
+  ok('the faces list goes empty', (await call(s.base, 'GET', '/api/auth/faces')).players.length === 0);
+  ok('new accounts must have one', (await call(s.base, 'POST', '/api/auth/signup', {
+    body: { username: 'nochance', displayName: 'No Chance' }
+  })).httpStatus === 400);
+  ok('an account that has one still signs in',
+    !!(await call(s.base, 'POST', '/api/auth/login', {
+      body: { username: 'sam', password: 'password1' }
+    })).token);
+  ok('and the notice names who is locked out', /riley/.test(s.log()), '');
   s.child.kill();
   await new Promise((r) => setTimeout(r, 400));
 

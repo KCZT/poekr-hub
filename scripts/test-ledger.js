@@ -1,4 +1,6 @@
 'use strict';
+// Storage goes to a throwaway directory; must be first.
+require('./lib/sandbox');
 /* Exercises the money model against a night with cash, credit and fronted buy-ins. */
 const L = require('../src/ledger');
 

@@ -83,7 +83,7 @@ a { color: var(--brass); text-underline-offset: 3px; }
 
 /* ── Shell ─────────────────────────────────────────────────────────────── */
 
-#app { min-height: 100dvh; display: flex; flex-direction: column; }
+#app { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
 
 .appbar {
   position: sticky; top: 0; z-index: 30;
@@ -91,6 +91,7 @@ a { color: var(--brass); text-underline-offset: 3px; }
   padding: 10px var(--pad);
   padding-top: calc(10px + env(safe-area-inset-top, 0px));
   background: rgba(13, 33, 28, .93);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--felt-line);
 }
@@ -119,6 +120,7 @@ main { flex: 1; padding: var(--pad); padding-bottom: calc(88px + var(--rail)); m
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
   display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
   background: rgba(11, 28, 24, .96);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--felt-line);
   padding-bottom: var(--rail);
@@ -404,6 +406,7 @@ select {
 .scrim {
   position: fixed; inset: 0; z-index: 50;
   background: rgba(5, 14, 12, .72);
+  -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
   display: flex; align-items: flex-end; justify-content: center;
   padding: 0;
@@ -411,7 +414,8 @@ select {
 @media (min-width: 640px) { .scrim { align-items: center; padding: 24px; } }
 
 .sheet {
-  width: 100%; max-width: 460px; max-height: 88dvh; overflow-y: auto;
+  width: 100%; max-width: 460px;
+  max-height: 88vh; max-height: 88dvh; overflow-y: auto;
   background: var(--felt); border: 1px solid var(--felt-line);
   border-radius: var(--r-lg) var(--r-lg) 0 0;
   padding: 18px var(--pad) calc(20px + var(--rail));
@@ -482,13 +486,27 @@ select {
 
 .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
+/* ── Touch ─────────────────────────────────────────────────────────────── */
+
+/*
+ * The compact controls are sized for a mouse. On anything you poke with a
+ * finger they go up to the 44px Apple asks for — at a poker table, late, with a
+ * drink in the other hand, the difference between a small button and a
+ * comfortable one is a mis-tapped buy-in.
+ */
+@media (pointer: coarse) {
+  .btn-sm { min-height: 44px; padding-top: 8px; padding-bottom: 8px; }
+  .chip { min-height: 44px; }
+  .feed .t { padding-top: 3px; }
+}
+
 /* ── Desktop ───────────────────────────────────────────────────────────── */
 
 @media (min-width: 900px) {
   main { padding: 24px; padding-bottom: 40px; }
   .tabbar {
     top: 0; bottom: auto; left: 0; right: auto;
-    width: 84px; height: 100dvh;
+    width: 84px; height: 100vh; height: 100dvh;
     grid-auto-flow: row; grid-auto-columns: none; grid-auto-rows: max-content;
     border-top: 0; border-right: 1px solid var(--felt-line);
     padding-top: 76px;

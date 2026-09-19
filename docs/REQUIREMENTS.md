@@ -57,17 +57,25 @@ mode of independent switches is someone getting half of them right.
 | | On a local network | Hosted |
 |---|---|---|
 | Reading a table | open to anyone who can reach it | signed-in members only |
-| Accounts without a password | allowed, sign in by tapping a name | refused as a way in |
+| Accounts without a password | allowed, sign in by tapping a name | still allowed, and still a way in |
 | Certificate | makes its own, warns once per device | Caddy's, no warning |
 | Listens on | every interface | loopback only |
 | Client addresses | taken from the connection | taken from the proxy's headers |
 
 **Requirement:** a public address must never inherit the local network's
-assumption that whoever can reach the app belongs there.
+assumption that whoever can reach the app belongs there — *except* where the
+owner has knowingly chosen otherwise. Passwordless accounts are that exception:
+they stay available on a public address because the friction of inventing a
+password to buy in for twenty dollars is what gets an app abandoned. The app's
+job there is not to refuse, it is to make the consequence impossible to miss —
+on the startup banner, and on the account screen of anyone it affects, loudest
+for a poker admin. `REQUIRE_PASSWORDS=1` is the switch for owners who want the
+door shut.
 
 **Requirement:** moving between postures must not require editing data. A table
 that ran on a laptop has to be able to move to a server, and back, with the same
-files.
+files. In particular, moving to a public address must never lock an existing
+account out of an install it could previously use.
 
 ### 3a. Running on a laptop
 
@@ -279,27 +287,80 @@ offers an undo.
 
 ---
 
-## 10. Quality bar
+## 10. Browsers
 
-Four suites, run against the code that actually ships:
+**Requirement:** the app works on Safari on an iPhone, Safari on a Mac, Firefox
+on any platform, and anything Chromium. "Works" means every screen renders and
+every action completes — not that every nicety is available.
+
+The floor is Safari 15.4 and Firefox 91. Below that, say so; do not degrade
+silently.
+
+**Requirement:** a missing capability degrades, never throws. An engine that has
+no vibration, no wake lock, no app badge, no Web Share and no notifications at
+all must still run a whole night without a single error in the console.
+
+This is not hypothetical. A single `Notification?.permission` at module scope
+took the app down to a blank page on every iPhone, because optional chaining
+forgives a null value but not an identifier that was never declared. The rule
+that follows: **reach a global that some target browser lacks only through
+`typeof`**, never through a property access, however defensive the syntax looks.
+
+**Requirement:** where a capability cannot be offered, the interface says why
+rather than showing a control that does nothing.
+
+**Requirement:** no single test angle is trusted to cover this. Running one
+engine misses what another leaves out; running the source through an analyser
+misses what only happens live. Three suites, deliberately overlapping:
+API-stripping, a real WebKit, and static analysis against a support matrix.
+
+## 11. Phones
+
+**Requirement:** the interface is designed for a phone held one-handed, in a dim
+room, by someone who has had a drink.
+
+- Nothing scrolls sideways at any width from 360px up.
+- Every control a finger is meant to hit is at least 44px tall on a coarse
+  pointer. Compact sizes are for a mouse.
+- Content clears the notch and the home indicator: `viewport-fit=cover`, and
+  every `env(safe-area-inset-*)` carries a fallback.
+- The tab bar grows by the bottom inset rather than sitting under the home
+  indicator, and the page reserves room for it so nothing is trapped behind.
+- Sheets keep their buttons above the home indicator.
+
+**Requirement:** anything hidden is `display: none`, not merely transparent or
+moved offscreen, so it is gone for a screen reader and untabbable too.
+
+## 12. Quality bar
+
+Nine suites, run against the code that actually ships:
 
 | Suite | Covers | Needs |
 |---|---|---|
 | `test-ledger` | The money model in isolation | nothing |
 | `test-api` | Every endpoint, roles, the full night | nothing |
+| `test-compat` | The source against each browser's support | nothing |
 | `test-ui` | The real interface in a real browser | puppeteer |
-| `test-secure` | That a phone on the wifi gets a working secure context | puppeteer |
+| `test-layout` | Geometry and visibility on eight phones | puppeteer |
+| `test-degraded` | Engines missing APIs: iOS Safari, Firefox | puppeteer |
+| `test-webkit` | A genuine WebKit build | webkit2gtk-driver |
+| `test-secure` | That a phone on the wifi gets a secure context | puppeteer |
+| `test-hosted` | That a public address closes what it claims to | nothing |
 
 **Requirements:**
 
 - `npm test` runs with no dependencies beyond the app's own.
 - The money invariants in 4.2 each have a test that asserts them directly.
+- Every suite must be shown to fail when the bug it guards against is put back.
+  A regression test that cannot fail is decoration.
 - The packaged build is a byte-identical copy of source. No patching at package
   time, because then what ships is not what was tested.
-- Browser tests assert on real behaviour at a real viewport, not on whether a
-  function was called.
-
----
+- A suite skips politely when its tooling is absent, rather than failing.
+- **No suite may write to the install it is run from.** Storage paths are
+  overridable and the tests point at a throwaway directory. One of them deletes
+  its data folder when it finishes, and on a server that folder is a season of
+  poker history.
+- Running a suite twice in a row gives the same result both times.
 
 ## 11. Out of scope
 

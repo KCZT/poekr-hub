@@ -9,19 +9,33 @@ import { state } from './api.js';
  * something running on the wifi in someone's kitchen.
  */
 
-let granted = Notification?.permission === 'granted';
+/**
+ * Whether this browser has notifications at all.
+ *
+ * iOS Safari has no Notification object whatsoever in an ordinary tab — it
+ * appears only once the app has been added to the home screen. `typeof` is the
+ * only safe way to ask: writing `Notification?.permission` throws a
+ * ReferenceError there, because optional chaining forgives a null value but not
+ * an identifier that was never declared. That throw used to happen while this
+ * module was still loading, which took the whole app down to a blank page.
+ */
+function supported() {
+  return typeof Notification !== 'undefined';
+}
+
+let granted = supported() && Notification.permission === 'granted';
 
 export function status() {
   // Browsers switch these off entirely outside a secure context, and a phone on
   // http://192.168.x.x is not one. Say so rather than offer a dead button.
   if (!window.isSecureContext) return 'insecure';
-  if (typeof Notification === 'undefined') return 'unsupported';
+  if (!supported()) return 'unsupported';
   return Notification.permission;
 }
 
 export async function ask() {
   if (!window.isSecureContext) return 'insecure';
-  if (typeof Notification === 'undefined') return 'unsupported';
+  if (!supported()) return 'unsupported';
   try {
     const result = await Notification.requestPermission();
     granted = result === 'granted';
@@ -61,7 +75,7 @@ export async function alert(title, { body = '', tag = 'pokerhub', urgent = false
   try {
     const reg = await navigator.serviceWorker?.getRegistration();
     if (reg?.showNotification) return reg.showNotification(title, options);
-    return new Notification(title, options);
+    if (supported()) return new Notification(title, options);
   } catch { /* browser said no */ }
 }
 

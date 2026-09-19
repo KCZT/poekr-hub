@@ -58,7 +58,24 @@ const config = {
   get requireAuthToRead() { return hosted; },
 
   /** Tapping a name with no password is a local-network convenience only. */
-  get allowPasswordlessAccounts() { return hosted ? false : true; }
+  /**
+   * Whether an account can exist, and sign in, with no password.
+   *
+   * Allowed everywhere by default, including on a public address, because the
+   * people using this are sitting at a table together and being made to invent
+   * a password to buy in for twenty dollars is the kind of friction that gets
+   * an app abandoned.
+   *
+   * Be clear about what that costs on a public address, though: anyone who
+   * finds the URL can sign in as any account that has no password, including
+   * a poker admin. Set REQUIRE_PASSWORDS=1 to insist on one.
+   */
+  get allowPasswordlessAccounts() { return process.env.REQUIRE_PASSWORDS !== '1'; },
+
+  /** True when the open door is reachable from outside the house. */
+  get passwordlessOnPublicAddress() {
+    return hosted && this.allowPasswordlessAccounts;
+  }
 };
 
 module.exports = config;

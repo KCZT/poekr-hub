@@ -1,4 +1,6 @@
 'use strict';
+// Storage goes to a throwaway directory; must be first.
+require('./lib/sandbox');
 /* Loads the real UI in Chromium and clicks through a night. Catches the runtime
    errors that syntax checks and API tests cannot see. */
 const { app } = require('../server');
@@ -57,7 +59,7 @@ async function fill(page, labelText, value) {
   const browser = await puppeteer.launch({
     headless: 'new',
     ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
-    args: ['--no-sandbox', '--disable-dev-shm-usage']
+    args: ['--no-sandbox', '--disable-dev-shm-usage', '--no-proxy-server']
   });
 
   const errors = [];

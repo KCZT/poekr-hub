@@ -6,7 +6,6 @@ export function h(tag, props = {}, ...kids) {
   for (const [k, v] of Object.entries(props || {})) {
     if (v === null || v === undefined || v === false) continue;
     if (k === 'class') el.className = v;
-    else if (k === 'html') el.innerHTML = v;
     else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
     else if (k === 'dataset') Object.assign(el.dataset, v);
     else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2).toLowerCase(), v);
@@ -19,9 +18,6 @@ export function h(tag, props = {}, ...kids) {
   }
   return el;
 }
-
-export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
-  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /**
  * @param {string} message

@@ -34,7 +34,9 @@ app.use(express.json({ limit: '8mb' }));
 app.get('/brand/icon', (_req, res) => {
   const custom = db.settings.logo;
   if (custom) {
-    const file = path.join(__dirname, custom.replace(/^\//, ''));
+    const file = path.join(process.env.POKERHUB_UPLOADS
+      ? path.join(process.env.POKERHUB_UPLOADS, '..')
+      : __dirname, custom.replace(/^\//, ''));
     if (fs.existsSync(file)) {
       res.set('Content-Type', db.settings.logoMime || 'image/png');
       res.set('Cache-Control', 'no-cache');
@@ -79,7 +81,8 @@ app.get('/manifest.json', (_req, res) => {
   });
 });
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'), { maxAge: '7d', immutable: true }));
+app.use('/uploads', express.static(process.env.POKERHUB_UPLOADS || path.join(__dirname, 'uploads'),
+  { maxAge: '7d', immutable: true }));
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
 app.get('/api/bootstrap', (req, res) => {
@@ -201,24 +204,43 @@ async function start() {
 
 function announceHosted() {
   const open = db.players.filter((p) => !p.passwordHash && !p.disabled && !p.isGuest);
+  const openAdmins = open.filter((p) => p.role === 'site_admin');
   console.log('');
   console.log(`  ${db.settings.siteName} is up, hosted.`);
   console.log(`  Address        ${config.publicUrl}`);
   console.log(`  Listening on   ${config.bind}:${PORT}  (your proxy should point here)`);
   console.log('');
-  console.log('  Reading a table needs a sign-in, and an account without a');
-  console.log('  password cannot be used to get in. Both are on because this is');
-  console.log('  a public address rather than your wifi.');
-  if (open.length) {
+  console.log('  Reading a table needs a sign-in, because this is a public');
+  console.log('  address rather than your wifi.');
+
+  if (config.allowPasswordlessAccounts) {
     console.log('');
-    console.log(`  ${open.length} account${open.length === 1 ? '' : 's'} here ${open.length === 1 ? 'has' : 'have'} no password and cannot sign in:`);
-    for (const p of open.slice(0, 8)) {
-      console.log(`    ${p.username}${p.role === 'site_admin' ? '  (poker admin)' : ''}`);
+    console.log('  Accounts may have no password, and anyone who finds this');
+    console.log('  address can sign in as one by tapping the name. That is the');
+    console.log('  trade you have chosen; REQUIRE_PASSWORDS=1 turns it off.');
+    if (openAdmins.length) {
+      console.log('');
+      const who = openAdmins.map((p) => p.username).join(', ');
+      console.log('');
+      console.log(`  Worth knowing: ${who} ${openAdmins.length === 1 ? 'is a poker admin' : 'are poker admins'}`);
+      console.log('  with no password, so anyone at all can manage every');
+      console.log('  account and download a backup of the lot.');
+      console.log('  Give them one with:  npm run set-password <username>');
     }
-    if (open.length > 8) console.log(`    …and ${open.length - 8} more`);
-    console.log('');
-    console.log('  Give them one with:  npm run set-password <username>');
+  } else {
+    console.log('  Accounts need a password here, so one without cannot sign in.');
+    if (open.length) {
+      console.log('');
+      console.log(`  ${open.length} account${open.length === 1 ? '' : 's'} here ${open.length === 1 ? 'has' : 'have'} no password and cannot sign in:`);
+      for (const p of open.slice(0, 8)) {
+        console.log(`    ${p.username}${p.role === 'site_admin' ? '  (poker admin)' : ''}`);
+      }
+      if (open.length > 8) console.log(`    …and ${open.length - 8} more`);
+      console.log('');
+      console.log('  Give them one with:  npm run set-password <username>');
+    }
   }
+
   if (db.players.length === 0) {
     console.log('');
     console.log('  No accounts yet. The first one created becomes the poker admin,');
